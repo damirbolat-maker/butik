@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Каталог</title>
+<meta name="description" content="Одежда и аксессуары в наличии">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237d3355'/%3E%3Cpath d='M22 14l-10 8 5 6 3-2v24h24V26l3 2 5-6-10-8c-1 4-4 6-10 6s-9-2-10-6z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f4f0;--ink:#1f1a17;--muted:#7b726b;--line:#e9e2da;--accent:#7d3355}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+header{text-align:center;padding:calc(34px + env(safe-area-inset-top)) 20px 8px}
+h1{font-family:'Cormorant Garamond',serif;font-size:40px;margin:0;letter-spacing:.3px;font-weight:700}
+.about{color:var(--muted);margin:6px 0 0;font-size:15px}
+.links{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.links a{text-decoration:none;font-weight:700;font-size:14px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.links a.wa{background:#1f1a17;color:#fff;border-color:#1f1a17}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:18px 16px 6px;max-width:1100px;margin:0 auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:10px 16px 40px;max-width:1100px;margin:0 auto}
+@media(min-width:700px){.grid{grid-template-columns:repeat(3,1fr);gap:18px}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{background:#fff;border-radius:16px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column}
+.ph{aspect-ratio:4/5;background:#efe9e3 center/cover no-repeat;position:relative;display:flex;align-items:center;justify-content:center;color:#cdbfb2}
+.ph svg{width:44px;height:44px}
+.tag{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.92);font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:999px}
+.tag.pre{background:#2b5a9a;color:#fff}
+.body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.nm{font-weight:700;font-size:14.5px;line-height:1.25}
+.sub{color:var(--muted);font-size:12.5px}
+.sz{display:flex;flex-wrap:wrap;gap:4px}
+.sz span{font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:7px;padding:2px 7px}
+.pr{font-weight:800;font-size:17px;margin-top:auto}
+.buy{display:block;text-align:center;text-decoration:none;background:var(--accent);color:#fff;font-weight:700;font-size:13.5px;padding:10px;border-radius:11px}
+.empty{text-align:center;color:var(--muted);padding:60px 20px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:0 20px 30px}
+</style>
+</head>
+<body>
+<header><h1 id="shop">Каталог</h1><p class="about" id="about"></p><div class="links" id="links"></div></header>
+<div class="chips" id="chips"></div>
+<main class="grid" id="grid"><div class="empty" style="grid-column:1/-1">Загрузка…</div></main>
+<footer>Наличие обновляется автоматически</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>(Math.round(+v)||0).toLocaleString('ru-RU')+' ₸';
+const waNum=p=>{let d=String(p||'').replace(/\D/g,'');if(d.length===11&&d[0]==='8')d='7'+d.slice(1);if(d.length===10)d='7'+d;return d};
+const ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3l-5 4 2.5 3L7 9v12h10V9l1.5 1L21 7l-5-4c-.5 1.7-2 3-4 3S8.5 4.7 8 3z"/></svg>';
+let D={shop:{},items:[]},cat='Все';
+function render(){
+  const s=D.shop||{},ph=waNum(s.phone);
+  document.title=(s.name||'Каталог')+' — в наличии';
+  document.getElementById('shop').textContent=s.name||'Каталог';
+  document.getElementById('about').textContent=s.about||'';
+  const ig=String(s.insta||'').replace(/^@/,'');
+  document.getElementById('links').innerHTML=(ph?`<a class="wa" href="https://wa.me/${ph}" target="_blank" rel="noopener">Написать в WhatsApp</a>`:'')+(ig?`<a href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener">@${esc(ig)}</a>`:'');
+  const cats=['Все',...[...new Set(D.items.map(i=>i.category).filter(Boolean))]];
+  document.getElementById('chips').innerHTML=cats.length>2?cats.map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join(''):'';
+  const list=D.items.filter(i=>cat==='Все'||i.category===cat);
+  document.getElementById('grid').innerHTML=list.length?list.map(i=>{
+    const sizes=(i.sizes||[]).map(x=>x.s).filter(Boolean);
+    const txt=`Здравствуйте! Хочу заказать: ${i.name}${i.color?', '+i.color:''}${sizes.length?', размер ___':''} (${money(i.price)})`;
+    return `<div class="card"><div class="ph" style="${i.photo?`background-image:url('${esc(i.photo)}')`:''}">${i.photo?'':ICON}${i.preorder?'<span class="tag pre">Предзаказ</span>':(i.sizes||[]).reduce((a,x)=>a+x.left,0)<=2?'<span class="tag">Последние</span>':''}</div>
+    <div class="body"><div class="nm">${esc(i.name)}</div><div class="sub">${[i.brand,i.color].filter(Boolean).map(esc).join(' · ')}</div>
+    ${sizes.length?`<div class="sz">${sizes.map(z=>`<span>${esc(z)}</span>`).join('')}</div>`:''}
+    <div class="pr">${i.price?money(i.price):''}</div>
+    ${ph?`<a class="buy" href="https://wa.me/${ph}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Заказать</a>`:''}</div></div>`}).join(''):'<div class="empty" style="grid-column:1/-1">Скоро новые поступления 🤍</div>';
+}
+document.addEventListener('click',e=>{const c=e.target.closest('[data-c]');if(c){cat=c.dataset.c;render()}});
+(async()=>{
+  try{
+    const cfg=window.BUTIK_CONFIG,sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false}});
+    const {data,error}=await sb.rpc('catalog');if(error)throw error;D=data||D;render();
+  }catch(e){document.getElementById('grid').innerHTML='<div class="empty" style="grid-column:1/-1">Не удалось загрузить каталог. Обновите страницу.</div>'}
+})();
+</script>
+</body>
+</html>

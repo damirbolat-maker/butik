@@ -152,13 +152,13 @@ async function boot(){
 }
 function showLogin(){$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden');closeModal()}
 $('#loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();const u=$('#lgUser').value.trim().toLowerCase(),p=$('#lgPass').value;
+  e.preventDefault();const u=$('#lgUser').value.trim().toLowerCase().replace(/[`'" ]/g,''),p=$('#lgPass').value.trim().replace(/^[`'"]+|[`'"]+$/g,'');
   if(!u||!p){$('#lgErr').textContent='Введите логин и пароль';return}
   const email=u.includes('@')?u:u+'@'+window.BUTIK_CONFIG.loginDomain;
   $('#lgBtn').disabled=true;$('#lgErr').textContent='';
   const {error}=await sb.auth.signInWithPassword({email,password:p});
   $('#lgBtn').disabled=false;
-  if(error){$('#lgErr').textContent=/invalid/i.test(error.message)?'Неверный логин или пароль':'Ошибка входа: '+error.message;return}
+  if(error){$('#lgErr').textContent=/invalid/i.test(error.message)?'Неверный логин или пароль ('+email+')':/fetch|network|load/i.test(error.message)?'Нет связи с сервером. Отключите VPN/блокировщик рекламы или попробуйте другой браузер.':'Ошибка входа: '+error.message;return}
   startApp();
 });
 async function startApp(){
